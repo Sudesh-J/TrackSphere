@@ -1,0 +1,18 @@
+# TrackSphere — local PostgreSQL only (Phase 3 will wire app connection)
+services:
+  db:
+    image: postgres:16
+    container_name: tracksphere-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tracksphere
+      POSTGRES_PASSWORD: tracksphere_dev
+      POSTGRES_DB: tracksphere
+    ports:
+      - "5433:5432"
+    volumes:
+      - tracksphere_pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+volumes:
+  tracksphere_pgdata:
