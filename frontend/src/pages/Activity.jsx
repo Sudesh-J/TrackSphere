@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
+import EmptyState from '../components/EmptyState';
 
 export default function Activity() {
   const { token } = useAuth();
@@ -18,18 +22,15 @@ export default function Activity() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Activity history</h1>
-          <p className="muted">Actor comes from the authenticated session</p>
-        </div>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Loading…</p> : null}
-      {!loading && activities.length === 0 ? <p className="muted">No activity yet.</p> : null}
+      <PageHeader title="Activity history" description="Actor comes from the authenticated session" />
+      <Alert type="error">{error}</Alert>
+      {loading ? <LoadingBlock label="Loading activity…" /> : null}
       <article className="panel">
         <div className="table-wrap">
-          <table>
+          {!loading && activities.length === 0 ? (
+            <EmptyState title="No activity yet" />
+          ) : (
+          <table className="table-responsive">
             <thead>
               <tr>
                 <th>When</th>
@@ -41,16 +42,17 @@ export default function Activity() {
             <tbody>
               {activities.map((a) => (
                 <tr key={a.id}>
-                  <td>{new Date(a.createdAt).toLocaleString()}</td>
-                  <td>{a.actorName || '—'}</td>
-                  <td>
+                  <td data-label="When">{new Date(a.createdAt).toLocaleString()}</td>
+                  <td data-label="Actor">{a.actorName || '—'}</td>
+                  <td data-label="Action">
                     <code>{a.action}</code>
                   </td>
-                  <td>{a.summary}</td>
+                  <td data-label="Summary">{a.summary}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </article>
     </div>

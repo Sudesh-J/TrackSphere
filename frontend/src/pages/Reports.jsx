@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { apiRequest, getApiUrl } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
+import EmptyState from '../components/EmptyState';
 
 export default function Reports() {
   const { token } = useAuth();
@@ -51,20 +55,20 @@ export default function Reports() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Asset reports</h1>
-          <p className="muted">Filterable register with NBV (straight-line). Separate from NPV calculator.</p>
-        </div>
-        <div className="header-actions">
-          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!report}>
-            Export CSV
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-            Print / Save PDF
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="Asset reports"
+        description="Filterable register with NBV (straight-line). Separate from NPV calculator."
+        actions={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!report}>
+              Export CSV
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+              Print / Save PDF
+            </button>
+          </>
+        }
+      />
 
       <form className="toolbar print-hide" onSubmit={runReport}>
         <input
@@ -104,8 +108,8 @@ export default function Reports() {
         </button>
       </form>
 
-      {error ? <p className="error">{error}</p> : null}
-      {loading ? <p className="muted">Building report…</p> : null}
+      <Alert type="error">{error}</Alert>
+      {loading ? <LoadingBlock label="Building report…" /> : null}
 
       {report ? (
         <article className="panel print-area">
@@ -113,7 +117,10 @@ export default function Reports() {
           <p className="small muted">Generated {new Date(report.generatedAt).toLocaleString()}</p>
           <p className="small">{report.formula}</p>
           <div className="table-wrap">
-            <table>
+            {report.rows.length === 0 ? (
+              <EmptyState title="No rows for these filters" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Code</th>
@@ -130,30 +137,30 @@ export default function Reports() {
               <tbody>
                 {report.rows.map((r) => (
                   <tr key={r.assetCode}>
-                    <td>{r.assetCode}</td>
-                    <td>{r.name}</td>
-                    <td>{r.location}</td>
-                    <td>
+                    <td data-label="Code">{r.assetCode}</td>
+                    <td data-label="Name">{r.name}</td>
+                    <td data-label="Location">{r.location}</td>
+                    <td data-label="Status">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td>{r.currentAssignee || '—'}</td>
-                    <td>
+                    <td data-label="Assignee">{r.currentAssignee || '—'}</td>
+                    <td data-label="Last scan/handover">
                       {r.lastScanOrHandover
                         ? new Date(r.lastScanOrHandover).toLocaleString()
                         : '—'}
                     </td>
-                    <td>{r.purchaseCost ?? '—'}</td>
-                    <td>{r.accumulatedDepreciation ?? '—'}</td>
-                    <td>{r.nbv ?? '—'}</td>
+                    <td data-label="Cost">{r.purchaseCost ?? '—'}</td>
+                    <td data-label="Accum. dep.">{r.accumulatedDepreciation ?? '—'}</td>
+                    <td data-label="NBV">{r.nbv ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
-          {report.rows.length === 0 ? <p className="muted">No rows for these filters.</p> : null}
         </article>
       ) : (
-        <p className="muted">Run a report to see results.</p>
+        <EmptyState title="No report yet" description="Run a report to see results." />
       )}
     </div>
   );

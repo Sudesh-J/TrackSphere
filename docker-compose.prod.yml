@@ -47,7 +47,8 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://127.0.0.1:4000}
+        # Empty = same-origin /api via nginx. Use :- only for local defaults in docker-compose.yml.
+        VITE_API_URL: ${VITE_API_URL-}
     container_name: tracksphere-web
     restart: unless-stopped
     ports:

@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Retirements() {
   const { token, user } = useAuth();
@@ -52,19 +55,20 @@ export default function Retirements() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Retirements</h1>
-          <p className="muted">Request end-of-life for assets — approve under Approvals</p>
-        </div>
-      </header>
+      <PageHeader
+        title="Retirements"
+        description="Request end-of-life for assets — approve under Approvals"
+      />
 
-      {error ? <p className="error">{error}</p> : null}
+      <Alert type="error">{error}</Alert>
 
       <section className="split">
         <article className="panel">
           <div className="table-wrap">
-            <table>
+            {retirements.length === 0 ? (
+              <EmptyState title="No retirement requests" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -76,23 +80,24 @@ export default function Retirements() {
               <tbody>
                 {retirements.map((r) => (
                   <tr key={r.id}>
-                    <td>
+                    <td data-label="Asset">
                       <div className="cell-stack">
                         <strong>{r.assetCode}</strong>
                         <span className="muted">{r.assetName}</span>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Type">
                       <StatusBadge status={r.retirementType} />
                     </td>
-                    <td>{r.reason}</td>
-                    <td>
+                    <td data-label="Reason">{r.reason}</td>
+                    <td data-label="Status">
                       <StatusBadge status={r.status} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
 

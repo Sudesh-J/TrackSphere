@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Send } from 'lucide-react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
 
 export default function Assistant() {
   const { token } = useAuth();
@@ -56,20 +60,36 @@ export default function Assistant() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Gemini assistant</h1>
-          <p className="muted">
-            Find assets, summarize inventory, explain the app. Data changes require confirmation.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="Gemini assistant"
+        description="Find assets, summarize inventory, explain the app. Data changes require confirmation."
+      />
 
       {status ? (
-        <p className={status.geminiConfigured ? 'ok' : 'error'}>{status.message}</p>
+        <Alert type={status.geminiConfigured ? 'success' : 'error'}>{status.message}</Alert>
       ) : null}
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
+
+      <section className="assistant-thread panel">
+        {message || reply ? (
+          <>
+            <div className="chat-bubble user">
+              <p className="muted small">You</p>
+              <p>{message}</p>
+            </div>
+            {loading ? <LoadingBlock label="Thinking…" /> : null}
+            {reply ? (
+              <div className="chat-bubble assistant">
+                <p className="muted small">Assistant</p>
+                <pre className="assistant-reply">{reply}</pre>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted">Ask a question below to start the thread.</p>
+        )}
+      </section>
 
       <form className="stack-form panel" onSubmit={send}>
         <label>
@@ -77,16 +97,10 @@ export default function Assistant() {
           <textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} />
         </label>
         <button className="btn btn-primary" type="submit" disabled={loading}>
+          <Send size={16} aria-hidden="true" />
           {loading ? 'Thinking…' : 'Send'}
         </button>
       </form>
-
-      {reply ? (
-        <article className="panel">
-          <h2>Reply</h2>
-          <pre className="assistant-reply">{reply}</pre>
-        </article>
-      ) : null}
 
       {assets.length ? (
         <article className="panel">
@@ -105,11 +119,11 @@ export default function Assistant() {
       ) : null}
 
       {draft ? (
-        <article className="panel">
+        <article className="panel confirm-card">
           <h2>Draft action (not saved yet)</h2>
           <pre className="assistant-reply">{JSON.stringify(draft, null, 2)}</pre>
           <button type="button" className="btn btn-primary" onClick={confirmDraft}>
-            Confirm & save
+            Confirm &amp; save
           </button>
         </article>
       ) : null}

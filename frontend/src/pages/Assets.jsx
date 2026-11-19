@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { apiRequest, getApiUrl } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
+import EmptyState from '../components/EmptyState';
 
 const EMPTY = {
   assetCode: '',
@@ -108,15 +112,13 @@ export default function Assets() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Asset register</h1>
-          <p className="muted">Inventory with valuation fields, QR handover links, and photos</p>
-        </div>
-      </header>
+      <PageHeader
+        title="Asset register"
+        description="Inventory with valuation fields, QR handover links, and photos"
+      />
 
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
 
       <form
         className="toolbar"
@@ -143,13 +145,15 @@ export default function Assets() {
         </button>
       </form>
 
-      {loading ? <p className="muted">Loading assets…</p> : null}
-      {!loading && assets.length === 0 ? <p className="muted">No assets match.</p> : null}
+      {loading ? <LoadingBlock label="Loading assets…" /> : null}
 
       <section className="split">
         <article className="panel">
           <div className="table-wrap">
-            <table>
+            {!loading && assets.length === 0 ? (
+              <EmptyState title="No assets match" description="Try different filters or create a new asset." />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -163,20 +167,20 @@ export default function Assets() {
               <tbody>
                 {assets.map((a) => (
                   <tr key={a.id}>
-                    <td>
+                    <td data-label="Asset">
                       <div className="cell-stack">
                         <strong>{a.assetCode}</strong>
                         <span>{a.name}</span>
                         <span className="muted small">{a.category}</span>
                       </div>
                     </td>
-                    <td>{a.location}</td>
-                    <td>
+                    <td data-label="Location">{a.location}</td>
+                    <td data-label="Status">
                       <StatusBadge status={a.status} />
                     </td>
-                    <td>{a.currentAssignee || '—'}</td>
-                    <td>{a.nbv != null ? a.nbv : '—'}</td>
-                    <td>
+                    <td data-label="Assignee">{a.currentAssignee || '—'}</td>
+                    <td data-label="NBV">{a.nbv != null ? a.nbv : '—'}</td>
+                    <td data-label="QR / Photo">
                       <div className="row-actions">
                         <Link className="btn btn-ghost" to={`/handover/${a.qrToken}`}>
                           Handover
@@ -221,6 +225,7 @@ export default function Assets() {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
 

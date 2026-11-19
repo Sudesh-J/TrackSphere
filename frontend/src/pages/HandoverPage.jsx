@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { apiRequest, getApiUrl } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
 
 export default function HandoverPage() {
   const { token: qrToken } = useParams();
@@ -105,11 +108,17 @@ export default function HandoverPage() {
     }
   }
 
-  if (loading) return <div className="page mobile-page"><p className="muted">Loading asset…</p></div>;
+  if (loading) {
+    return (
+      <div className="page mobile-page">
+        <LoadingBlock label="Loading asset…" />
+      </div>
+    );
+  }
   if (error && !data) {
     return (
       <div className="page mobile-page">
-        <p className="error">{error}</p>
+        <Alert type="error">{error}</Alert>
         <Link to="/">Back to app</Link>
       </div>
     );
@@ -122,22 +131,23 @@ export default function HandoverPage() {
 
   return (
     <div className="page mobile-page">
-      <header className="page-header">
-        <div>
-          <p className="muted">QR asset handover</p>
-          <h1>{asset.name}</h1>
-          <p>
-            <code>{asset.assetCode}</code> · <StatusBadge status={asset.status} />
-          </p>
-        </div>
-        <Link className="btn btn-secondary" to="/">
-          Dashboard
-        </Link>
-      </header>
+      <PageHeader
+        title={asset.name}
+        description={
+          <>
+            QR asset handover · <code>{asset.assetCode}</code> · <StatusBadge status={asset.status} />
+          </>
+        }
+        actions={
+          <Link className="btn btn-secondary" to="/">
+            Dashboard
+          </Link>
+        }
+      />
 
       {photoSrc ? <img className="asset-photo" src={photoSrc} alt={asset.name} /> : null}
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
 
       {data.currentAllocation ? (
         <article className="panel">
@@ -223,7 +233,7 @@ export default function HandoverPage() {
 
       {draft ? (
         <div className="modal-backdrop">
-          <div className="modal panel">
+          <div className="modal panel confirm-card">
             <h2>Confirm {draft.type === 'assign' ? 'handover' : 'return'}</h2>
             <p>
               <strong>{draft.asset.assetCode}</strong> — {draft.asset.name}

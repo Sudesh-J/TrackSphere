@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Transfers() {
   const { token, user } = useAuth();
@@ -46,19 +49,20 @@ export default function Transfers() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Transfers</h1>
-          <p className="muted">Request location moves — approve them under Approvals</p>
-        </div>
-      </header>
+      <PageHeader
+        title="Transfers"
+        description="Request location moves — approve them under Approvals"
+      />
 
-      {error ? <p className="error">{error}</p> : null}
+      <Alert type="error">{error}</Alert>
 
       <section className="split">
         <article className="panel">
           <div className="table-wrap">
-            <table>
+            {transfers.length === 0 ? (
+              <EmptyState title="No transfer requests" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -70,23 +74,24 @@ export default function Transfers() {
               <tbody>
                 {transfers.map((t) => (
                   <tr key={t.id}>
-                    <td>
+                    <td data-label="Asset">
                       <div className="cell-stack">
                         <strong>{t.assetCode}</strong>
                         <span className="muted">{t.assetName}</span>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="From → To">
                       {t.fromLocation} → {t.toLocation}
                     </td>
-                    <td>{t.requestedBy}</td>
-                    <td>
+                    <td data-label="Requested by">{t.requestedBy}</td>
+                    <td data-label="Status">
                       <StatusBadge status={t.status} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
 

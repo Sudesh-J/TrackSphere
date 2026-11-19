@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Users() {
   const { token } = useAuth();
@@ -53,18 +56,16 @@ export default function Users() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Users & roles</h1>
-          <p className="muted">Admin-only. Roles: Admin, Staff, Approver</p>
-        </div>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <PageHeader title="Users & roles" description="Admin-only. Roles: Admin, Staff, Approver" />
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
       <section className="split">
         <article className="panel">
           <div className="table-wrap">
-            <table>
+            {users.length === 0 ? (
+              <EmptyState title="No users" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Email</th>
@@ -76,12 +77,12 @@ export default function Users() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id}>
-                    <td>{u.email}</td>
-                    <td>{u.displayName}</td>
-                    <td>
+                    <td data-label="Email">{u.email}</td>
+                    <td data-label="Name">{u.displayName}</td>
+                    <td data-label="Role">
                       <StatusBadge status={u.role === 'Admin' ? 'in_use' : 'available'} /> {u.role}
                     </td>
-                    <td>
+                    <td data-label="Change">
                       <select
                         value={u.role}
                         onChange={(e) => changeRole(u.id, e.target.value)}
@@ -95,6 +96,7 @@ export default function Users() {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
         <article className="panel form-panel">

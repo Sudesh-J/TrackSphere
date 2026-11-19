@@ -1,20 +1,28 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
+import EmptyState from '../components/EmptyState';
 
 export default function DeviceHealth() {
   const { token } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(true);
 
   async function load() {
+    setLoading(true);
     try {
       const d = await apiRequest('/api/device-health/devices', { token });
       setData(d);
       setError('');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -34,34 +42,35 @@ export default function DeviceHealth() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Device health</h1>
-          <p className="muted">
-            Windows laptop health agent check-ins. Warnings are threshold/trend based — not
-            predictive maintenance.
-          </p>
-        </div>
-        <button type="button" className="btn btn-secondary" onClick={insertDemo}>
-          Insert demo telemetry
-        </button>
-      </header>
+      <PageHeader
+        title="Device health"
+        description="Windows laptop health agent check-ins. Warnings are threshold/trend based — not predictive maintenance."
+        actions={
+          <button type="button" className="btn btn-secondary" onClick={insertDemo}>
+            Insert demo telemetry
+          </button>
+        }
+      />
 
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
-      {!data ? <p className="muted">Loading…</p> : null}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
+      {loading ? <LoadingBlock label="Loading device health…" /> : null}
 
       {data ? (
         <>
           <p className="hint">{data.note}</p>
           <section className="card-grid">
             {data.devices.length === 0 ? (
-              <p className="muted">No check-ins yet. Run the agent or insert demo telemetry.</p>
+              <EmptyState
+                title="No check-ins yet"
+                description="Run the agent or insert demo telemetry."
+              />
             ) : null}
             {data.devices.map((d) => (
               <article key={d.deviceId} className="stat-card">
                 <p className="stat-label">
-                  {d.deviceId} {d.isDemo ? '(DEMO)' : ''}
+                  {d.deviceId}
+                  {d.isDemo ? <span className="badge badge-demo">Demo data</span> : null}
                 </p>
                 <p>CPU: {d.cpuPercent ?? '—'}%</p>
                 <p>Memory: {d.memoryPercent ?? '—'}%</p>
@@ -75,14 +84,14 @@ export default function DeviceHealth() {
           <article className="panel">
             <h2>Health warnings</h2>
             {data.warnings.length === 0 ? (
-              <p className="muted">No warnings.</p>
+              <EmptyState title="No warnings" />
             ) : (
-              <ul className="simple-list">
+              <ul className="warning-list">
                 {data.warnings.map((w, i) => (
-                  <li key={i}>
+                  <li key={i} className="warning-item">
                     <span>
                       {w.deviceId}: {w.message}
-                      {w.isDemo ? ' [DEMO]' : ''}
+                      {w.isDemo ? <span className="badge badge-demo">Demo</span> : null}
                     </span>
                   </li>
                 ))}

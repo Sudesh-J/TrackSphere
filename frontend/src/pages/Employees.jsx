@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Employees() {
   const { token, isAdmin } = useAuth();
@@ -44,13 +47,11 @@ export default function Employees() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Employees</h1>
-          <p className="muted">{note || 'Handover recipients (no login accounts)'}</p>
-        </div>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
+      <PageHeader
+        title="Employees"
+        description={note || 'Handover recipients (no login accounts)'}
+      />
+      <Alert type="error">{error}</Alert>
       <form
         className="toolbar"
         onSubmit={(e) => {
@@ -69,9 +70,11 @@ export default function Employees() {
       </form>
       <section className="split">
         <article className="panel">
-          {employees.length === 0 ? <p className="muted">No employees found.</p> : null}
           <div className="table-wrap">
-            <table>
+            {employees.length === 0 ? (
+              <EmptyState title="No employees found" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Code</th>
@@ -83,14 +86,15 @@ export default function Employees() {
               <tbody>
                 {employees.map((e) => (
                   <tr key={e.id}>
-                    <td>{e.employeeCode}</td>
-                    <td>{e.fullName}</td>
-                    <td>{e.email}</td>
-                    <td>{e.department}</td>
+                    <td data-label="Code">{e.employeeCode}</td>
+                    <td data-label="Name">{e.fullName}</td>
+                    <td data-label="Email">{e.email}</td>
+                    <td data-label="Department">{e.department}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
         {isAdmin ? (

@@ -15,13 +15,14 @@ const LABELS = {
   scrap: 'Scrap',
   sale: 'Sale',
   donate: 'Donate',
+  admin: 'Admin',
+  staff: 'Staff',
+  approver: 'Approver',
 };
 
 export default function StatusBadge({ status }) {
-  const key = String(status || '').toLowerCase();
-  return (
-    <span className={`badge badge-${key}`}>
-      {LABELS[key] || status}
-    </span>
-  );
+  const key = String(status || '')
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  return <span className={`badge badge-${key}`}>{LABELS[key] || status}</span>;
 }

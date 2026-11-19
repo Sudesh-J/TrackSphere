@@ -19,6 +19,7 @@ import Assistant from './pages/Assistant';
 import DeviceHealth from './pages/DeviceHealth';
 import Activity from './pages/Activity';
 import NpvCalculator from './pages/NpvCalculator';
+import Alert from './components/Alert';
 
 function Protected({ children }) {
   const { isAuthenticated } = useAuth();
@@ -34,7 +35,9 @@ function RoleRoute({ roles, children }) {
   if (user && !roles.includes(user.role) && user.role !== 'Admin') {
     return (
       <div className="page">
-        <p className="error">Forbidden for role {user.role}. Required: {roles.join(', ')}.</p>
+        <Alert type="error">
+          Forbidden for role {user.role}. Required: {roles.join(', ')}.
+        </Alert>
       </div>
     );
   }

@@ -1,4 +1,11 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+// Empty VITE_API_URL => same-origin (nginx proxies /api). Dev default is localhost:4000.
+const rawApiUrl = import.meta.env.VITE_API_URL;
+const API_URL =
+  rawApiUrl === undefined || rawApiUrl === null || rawApiUrl === ''
+    ? import.meta.env.DEV
+      ? 'http://localhost:4000'
+      : ''
+    : String(rawApiUrl).replace(/\/$/, '');
 
 export function getApiUrl() {
   return API_URL;

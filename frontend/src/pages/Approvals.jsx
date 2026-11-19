@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Approvals() {
   const { token, user } = useAuth();
@@ -44,21 +47,16 @@ export default function Approvals() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Approvals</h1>
-          <p className="muted">Pending transfer and retirement requests</p>
-        </div>
-      </header>
+      <PageHeader title="Approvals" description="Pending transfer and retirement requests" />
 
-      {error ? <p className="error">{error}</p> : null}
+      <Alert type="error">{error}</Alert>
 
       <article className="panel">
         {items.length === 0 ? (
-          <p className="muted">No pending approvals.</p>
+          <EmptyState title="No pending approvals" />
         ) : (
           <div className="table-wrap">
-            <table>
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Type</th>
@@ -71,19 +69,19 @@ export default function Approvals() {
               <tbody>
                 {items.map((item) => (
                   <tr key={`${item.entityType}-${item.id}`}>
-                    <td>
+                    <td data-label="Type">
                       <StatusBadge status={item.entityType === 'transfer' ? 'pending' : 'scrap'} />
                       <div className="muted small">{item.entityType}</div>
                     </td>
-                    <td>
+                    <td data-label="Asset">
                       <div className="cell-stack">
                         <strong>{item.assetCode}</strong>
                         <span className="muted">{item.assetName}</span>
                       </div>
                     </td>
-                    <td>{item.summary}</td>
-                    <td>{item.requestedBy}</td>
-                    <td className="row-actions">
+                    <td data-label="Summary">{item.summary}</td>
+                    <td data-label="Requested by">{item.requestedBy}</td>
+                    <td data-label="Actions" className="row-actions">
                       <button
                         type="button"
                         className="btn btn-primary"

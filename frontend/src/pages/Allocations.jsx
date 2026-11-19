@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
 
 export default function Allocations() {
   const { token, isStaff } = useAuth();
@@ -61,19 +64,19 @@ export default function Allocations() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Allocations</h1>
-          <p className="muted">Prefer QR handover for phone workflows; this page remains available</p>
-        </div>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <PageHeader
+        title="Allocations"
+        description="Prefer QR handover for phone workflows; this page remains available"
+      />
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
       <section className="split">
         <article className="panel">
-          {allocations.length === 0 ? <p className="muted">No allocations.</p> : null}
           <div className="table-wrap">
-            <table>
+            {allocations.length === 0 ? (
+              <EmptyState title="No allocations" />
+            ) : (
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Asset</th>
@@ -86,15 +89,15 @@ export default function Allocations() {
               <tbody>
                 {allocations.map((row) => (
                   <tr key={row.id}>
-                    <td>
+                    <td data-label="Asset">
                       {row.assetCode} — {row.assetName}
                     </td>
-                    <td>{row.assignedTo}</td>
-                    <td>{row.returnBy || '—'}</td>
-                    <td>
+                    <td data-label="Assigned to">{row.assignedTo}</td>
+                    <td data-label="Return by">{row.returnBy || '—'}</td>
+                    <td data-label="Status">
                       <StatusBadge status={row.status} />
                     </td>
-                    <td>
+                    <td data-label="">
                       {row.status === 'allocated' && isStaff ? (
                         <button
                           type="button"
@@ -109,6 +112,7 @@ export default function Allocations() {
                 ))}
               </tbody>
             </table>
+            )}
           </div>
         </article>
         {isStaff ? (

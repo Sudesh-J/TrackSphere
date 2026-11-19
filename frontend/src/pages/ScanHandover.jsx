@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Camera } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
 
 export default function ScanHandover() {
   const { token } = useAuth();
@@ -91,23 +94,22 @@ export default function ScanHandover() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Scan / handover</h1>
-          <p className="muted">
-            QR-based asset handover (replaces simulated RFID as the main tracking flow)
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="Scan / handover"
+        description="QR-based asset handover (replaces simulated RFID as the main tracking flow)"
+      />
 
-      {error ? <p className="error">{error}</p> : null}
+      <Alert type="error">{error}</Alert>
 
-      <section className="split">
-        <article className="panel">
-          <h2>Phone camera scan</h2>
+      <section className="scan-hero split">
+        <article className="panel scan-primary">
+          <div className="panel-header">
+            <h2>Phone camera scan</h2>
+          </div>
           <div id="qr-reader" className="qr-reader" />
           {!scanning ? (
             <button type="button" className="btn btn-primary" onClick={startCamera}>
+              <Camera size={16} aria-hidden="true" />
               Start camera
             </button>
           ) : (

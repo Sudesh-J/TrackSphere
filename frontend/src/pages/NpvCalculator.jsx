@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { Calculator } from 'lucide-react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
 
 export default function NpvCalculator() {
   const { token } = useAuth();
@@ -27,15 +30,11 @@ export default function NpvCalculator() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>NPV calculator</h1>
-          <p className="muted">
-            Separate from asset NBV. Enter cash flows (period 0..n) and discount rate %.
-          </p>
-        </div>
-      </header>
-      {error ? <p className="error">{error}</p> : null}
+      <PageHeader
+        title="NPV calculator"
+        description="Separate from asset NBV. Enter cash flows (period 0..n) and discount rate %."
+      />
+      <Alert type="error">{error}</Alert>
       <form className="panel stack-form" onSubmit={calculate}>
         <label>
           Cash flows (comma-separated)
@@ -46,15 +45,17 @@ export default function NpvCalculator() {
           <input type="number" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} />
         </label>
         <button className="btn btn-primary" type="submit">
+          <Calculator size={16} aria-hidden="true" />
           Calculate NPV
         </button>
       </form>
       {result ? (
-        <article className="panel">
-          <p className="ok">NPV = {result.npv}</p>
+        <article className="panel npv-result">
+          <p className="stat-label">Net present value</p>
+          <p className="stat-value">{result.npv}</p>
           <p className="muted">{result.note}</p>
           <div className="table-wrap">
-            <table>
+            <table className="table-responsive">
               <thead>
                 <tr>
                   <th>Period</th>
@@ -65,9 +66,9 @@ export default function NpvCalculator() {
               <tbody>
                 {result.periods.map((p) => (
                   <tr key={p.period}>
-                    <td>{p.period}</td>
-                    <td>{p.cashFlow}</td>
-                    <td>{p.presentValue}</td>
+                    <td data-label="Period">{p.period}</td>
+                    <td data-label="Cash flow">{p.cashFlow}</td>
+                    <td data-label="Present value">{p.presentValue}</td>
                   </tr>
                 ))}
               </tbody>

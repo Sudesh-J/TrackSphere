@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
+import { FileUp } from 'lucide-react';
 import { apiRequest } from '../api';
 import { useAuth } from '../auth';
+import PageHeader from '../components/PageHeader';
+import Alert from '../components/Alert';
+import LoadingBlock from '../components/LoadingBlock';
 
 export default function InvoiceIntake() {
   const { token, isAdmin } = useAuth();
@@ -20,6 +24,8 @@ export default function InvoiceIntake() {
   const [success, setSuccess] = useState('');
   const [draftReady, setDraftReady] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const step = success ? 3 : draftReady ? 2 : 1;
 
   useEffect(() => {
     apiRequest('/api/invoice/status', { token })
@@ -100,24 +106,27 @@ export default function InvoiceIntake() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Invoice → asset intake</h1>
-          <p className="muted">
-            Upload invoice PDF/image. Gemini suggests fields; you must confirm before saving.
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="Invoice → asset intake"
+        description="Upload invoice PDF/image. Gemini suggests fields; you must confirm before saving."
+      />
+
+      <nav className="stepper" aria-label="Intake steps">
+        <span className={`step-pill${step === 1 ? ' active' : ''}`}>1. Upload</span>
+        <span className={`step-pill${step === 2 ? ' active' : ''}`}>2. Review</span>
+        <span className={`step-pill${step === 3 ? ' active' : ''}`}>3. Confirm</span>
+      </nav>
 
       {status ? (
-        <p className={status.geminiConfigured ? 'ok' : 'error'}>{status.message}</p>
+        <Alert type={status.geminiConfigured ? 'success' : 'error'}>{status.message}</Alert>
       ) : null}
-      {error ? <p className="error">{error}</p> : null}
-      {success ? <p className="ok">{success}</p> : null}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{success}</Alert>
+      {loading ? <LoadingBlock label="Working on invoice…" /> : null}
 
-      <section className="split">
+      <section className="form-grid split">
         <article className="panel form-panel">
-          <h2>1. Upload</h2>
+          <h2>Upload</h2>
           <form className="stack-form" onSubmit={extract}>
             <label>
               Invoice file (PDF/JPEG/PNG/WebP, max 8MB)
@@ -128,13 +137,14 @@ export default function InvoiceIntake() {
               />
             </label>
             <button className="btn btn-secondary" type="submit" disabled={loading}>
+              <FileUp size={16} aria-hidden="true" />
               {loading ? 'Extracting…' : 'Extract with Gemini / continue manually'}
             </button>
           </form>
         </article>
 
         <article className="panel form-panel">
-          <h2>2. Review & confirm</h2>
+          <h2>Review &amp; confirm</h2>
           {!draftReady ? (
             <p className="muted">Extract or fill manually after upload attempt.</p>
           ) : (

@@ -8,8 +8,9 @@ COPY index.html vite.config.js ./
 COPY public ./public
 COPY src ./src
 
-# Public API URL baked into the SPA at build time
-ARG VITE_API_URL=http://localhost:4000
+# Public API URL baked into the SPA at build time.
+# Leave empty in production so the browser uses same-origin /api (nginx).
+ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
