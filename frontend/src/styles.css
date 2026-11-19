@@ -943,13 +943,172 @@ code {
   width: min(480px, 100%);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.assistant-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.assistant-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
 .assistant-thread {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 420px;
+  padding: 0.15rem;
+}
+
+.assistant-empty {
+  margin: 0.25rem 0.15rem;
+}
+
+.assistant-composer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.assistant-composer textarea {
+  flex: 1;
+  min-height: 44px;
+  resize: vertical;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.62rem 0.75rem;
+  background: var(--surface);
+}
+
+.assistant-matches {
+  max-height: 140px;
   overflow: auto;
-  padding: 0.25rem;
+}
+
+.assistant-page-card .assistant-thread {
+  min-height: 280px;
+}
+
+.assistant-dock {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 36;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
+  pointer-events: none;
+}
+
+.assistant-dock > * {
+  pointer-events: auto;
+}
+
+.assistant-fab {
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: white;
+  cursor: pointer;
+  background: var(--grad-accent);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.35);
+}
+
+.assistant-fab:hover {
+  filter: brightness(1.06);
+}
+
+.assistant-dock-panel {
+  width: min(380px, calc(100vw - 24px));
+  height: min(68vh, 620px);
+  max-height: min(68vh, 620px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.8rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), #f7f5f1);
+  box-shadow: 0 22px 50px rgba(18, 32, 51, 0.2);
+  overflow: hidden;
+}
+
+.assistant-dock-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.assistant-dock-head strong {
+  font-family: var(--display);
+}
+
+.assistant-dock-panel .assistant-panel {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.assistant-dock-panel .assistant-scroll {
+  flex: 1;
+}
+
+.assistant-dock-panel .chat-bubble {
+  max-width: 100%;
+}
+
+.assistant-dock-panel .confirm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.assistant-dock-panel .confirm-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.assistant-dock-panel .confirm-card input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: white;
+  font-weight: 500;
+}
+
+.assistant-dock-panel .assistant-composer button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .chat-bubble {
@@ -973,6 +1132,7 @@ code {
 
 .assistant-reply {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-family: var(--font);
   margin: 0;
 }
@@ -1105,7 +1265,18 @@ code {
   }
 
   .main-content {
-    padding: 1rem;
+    padding: 1rem 1rem 5.5rem;
+  }
+
+  .assistant-dock-panel {
+    width: min(100vw - 16px, 440px);
+    height: min(72vh, 640px);
+    max-height: min(72vh, 640px);
+  }
+
+  .assistant-fab {
+    width: 54px;
+    height: 54px;
   }
 
   /* Stack tables as cards on small screens */
@@ -1155,6 +1326,7 @@ code {
   }
 
   .sidebar,
+  .assistant-dock,
   .topbar,
   .toolbar,
   .header-actions,

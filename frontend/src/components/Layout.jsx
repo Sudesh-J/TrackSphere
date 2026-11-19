@@ -25,6 +25,7 @@ import {
   Archive,
 } from 'lucide-react';
 import { useAuth } from '../auth';
+import AssistantDock from './AssistantDock';
 
 const NAV_SECTIONS = [
   {
@@ -189,6 +190,7 @@ export default function Layout() {
         <div className="main-content">
           <Outlet />
         </div>
+        <AssistantDock />
       </div>
     </div>
   );
