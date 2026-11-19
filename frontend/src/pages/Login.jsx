@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 
 export default function Login() {
   const { login, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('admin@tracksphere.demo');
   const [password, setPassword] = useState('Demo@123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  const redirectTo = location.state?.from || '/';
+
+  if (isAuthenticated) return <Navigate to={redirectTo} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,6 +21,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -29,17 +34,11 @@ export default function Login() {
       <form className="login-panel" onSubmit={handleSubmit}>
         <p className="login-brand">TrackSphere</p>
         <h1>Sign in</h1>
-        <p className="muted">Student asset-management prototype</p>
+        <p className="muted">Demo roles: Admin / Staff / Approver</p>
 
         <label>
           Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="username"
-          />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
           Password
@@ -48,7 +47,6 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoComplete="current-password"
           />
         </label>
 
@@ -58,7 +56,14 @@ export default function Login() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <p className="hint">Demo: admin@tracksphere.demo / Demo@123</p>
+        <div className="hint">
+          <p>Demo accounts (password <code>Demo@123</code>):</p>
+          <ul>
+            <li>admin@tracksphere.demo — Admin</li>
+            <li>staff@tracksphere.demo — Staff</li>
+            <li>approver@tracksphere.demo — Approver</li>
+          </ul>
+        </div>
       </form>
     </div>
   );

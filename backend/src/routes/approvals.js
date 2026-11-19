@@ -1,9 +1,9 @@
 const express = require('express');
 const { query } = require('../db/pool');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRoles } = require('../middleware/auth');
 
 const router = express.Router();
-router.use(requireAuth);
+router.use(requireAuth, requireRoles('Admin', 'Approver'));
 
 /**
  * Unified pending inbox for transfer + retirement requests.

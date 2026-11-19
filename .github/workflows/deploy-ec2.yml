@@ -1,0 +1,75 @@
+# Deploy TrackSphere to an existing EC2 instance over SSH.
+# Required GitHub Secrets: EC2_HOST, EC2_USER, EC2_SSH_KEY
+# Optional: EC2_PORT (default 22), DEPLOY_PATH (default /opt/tracksphere)
+#
+# Does NOT create AWS resources. EC2 must already exist and be bootstrapped
+# (see docs/DEPLOYMENT.md).
+
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check required secrets
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          missing=0
+          if [ -z "$EC2_HOST" ]; then echo "Missing secret: EC2_HOST"; missing=1; fi
+          if [ -z "$EC2_USER" ]; then echo "Missing secret: EC2_USER"; missing=1; fi
+          if [ -z "$EC2_SSH_KEY" ]; then echo "Missing secret: EC2_SSH_KEY"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Add the secrets under Repo → Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "Required secrets are present."
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT != '' && secrets.EC2_PORT || 22 }}
+          script_stop: true
+          command_timeout: 25m
+          envs: DEPLOY_PATH
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/tracksphere}"
+
+            echo "==> Deploy path: $DEPLOY_PATH"
+            if [ ! -d "$DEPLOY_PATH/.git" ]; then
+              echo "ERROR: $DEPLOY_PATH is not a git clone of TrackSphere."
+              echo "Bootstrap the server once using docs/DEPLOYMENT.md, then re-run this workflow."
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+            echo "==> Fetching latest main"
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+
+            echo "==> Running remote deploy script"
+            chmod +x scripts/remote-deploy.sh
+            ./scripts/remote-deploy.sh
+
+            echo "==> Deploy finished"
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}

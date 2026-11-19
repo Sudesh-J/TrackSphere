@@ -4,24 +4,23 @@ import { useAuth } from '../auth';
 import StatusBadge from '../components/StatusBadge';
 
 export default function Allocations() {
-  const { token, user } = useAuth();
+  const { token, isStaff } = useAuth();
   const [allocations, setAllocations] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    assetId: '',
-    assignedTo: '',
-    returnBy: '',
-    notes: '',
-  });
+  const [success, setSuccess] = useState('');
+  const [form, setForm] = useState({ assetId: '', employeeId: '', returnBy: '', notes: '' });
 
   async function load() {
-    const [a, assetsRes] = await Promise.all([
+    const [a, assetsRes, emp] = await Promise.all([
       apiRequest('/api/allocations', { token }),
-      apiRequest('/api/assets', { token }),
+      apiRequest('/api/assets?status=available', { token }),
+      apiRequest('/api/employees', { token }),
     ]);
     setAllocations(a.allocations);
-    setAssets(assetsRes.assets.filter((x) => x.status !== 'retired' && x.status !== 'missing'));
+    setAssets(assetsRes.assets);
+    setEmployees(emp.employees);
   }
 
   useEffect(() => {
@@ -37,13 +36,13 @@ export default function Allocations() {
         token,
         body: {
           assetId: Number(form.assetId),
-          assignedTo: form.assignedTo,
-          allocatedBy: user?.displayName || user?.email,
+          employeeId: Number(form.employeeId),
           returnBy: form.returnBy || null,
           notes: form.notes || null,
         },
       });
-      setForm({ assetId: '', assignedTo: '', returnBy: '', notes: '' });
+      setSuccess('Allocation created');
+      setForm({ assetId: '', employeeId: '', returnBy: '', notes: '' });
       await load();
     } catch (err) {
       setError(err.message);
@@ -51,9 +50,9 @@ export default function Allocations() {
   }
 
   async function handleReturn(id) {
-    setError('');
     try {
       await apiRequest(`/api/allocations/${id}/return`, { method: 'POST', token });
+      setSuccess('Returned');
       await load();
     } catch (err) {
       setError(err.message);
@@ -65,14 +64,14 @@ export default function Allocations() {
       <header className="page-header">
         <div>
           <h1>Allocations</h1>
-          <p className="muted">Assign assets to people and mark them returned</p>
+          <p className="muted">Prefer QR handover for phone workflows; this page remains available</p>
         </div>
       </header>
-
       {error ? <p className="error">{error}</p> : null}
-
+      {success ? <p className="ok">{success}</p> : null}
       <section className="split">
         <article className="panel">
+          {allocations.length === 0 ? <p className="muted">No allocations.</p> : null}
           <div className="table-wrap">
             <table>
               <thead>
@@ -88,10 +87,7 @@ export default function Allocations() {
                 {allocations.map((row) => (
                   <tr key={row.id}>
                     <td>
-                      <div className="cell-stack">
-                        <strong>{row.assetCode}</strong>
-                        <span className="muted">{row.assetName}</span>
-                      </div>
+                      {row.assetCode} — {row.assetName}
                     </td>
                     <td>{row.assignedTo}</td>
                     <td>{row.returnBy || '—'}</td>
@@ -99,13 +95,13 @@ export default function Allocations() {
                       <StatusBadge status={row.status} />
                     </td>
                     <td>
-                      {row.status === 'allocated' ? (
+                      {row.status === 'allocated' && isStaff ? (
                         <button
                           type="button"
                           className="btn btn-secondary"
                           onClick={() => handleReturn(row.id)}
                         >
-                          Mark returned
+                          Return
                         </button>
                       ) : null}
                     </td>
@@ -115,54 +111,62 @@ export default function Allocations() {
             </table>
           </div>
         </article>
-
-        <article className="panel form-panel">
-          <h2>Allocate asset</h2>
-          <form className="stack-form" onSubmit={handleCreate}>
-            <label>
-              Asset
-              <select
-                value={form.assetId}
-                onChange={(e) => setForm({ ...form, assetId: e.target.value })}
-                required
-              >
-                <option value="">Select asset</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.assetCode} — {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Assigned to
-              <input
-                value={form.assignedTo}
-                onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
-                required
-              />
-            </label>
-            <label>
-              Return by
-              <input
-                type="date"
-                value={form.returnBy}
-                onChange={(e) => setForm({ ...form, returnBy: e.target.value })}
-              />
-            </label>
-            <label>
-              Notes
-              <textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </label>
-            <button className="btn btn-primary" type="submit">
-              Allocate
-            </button>
-          </form>
-        </article>
+        {isStaff ? (
+          <article className="panel form-panel">
+            <h2>Allocate</h2>
+            <form className="stack-form" onSubmit={handleCreate}>
+              <label>
+                Asset
+                <select
+                  value={form.assetId}
+                  onChange={(e) => setForm({ ...form, assetId: e.target.value })}
+                  required
+                >
+                  <option value="">Select</option>
+                  {assets.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.assetCode} — {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Employee
+                <select
+                  value={form.employeeId}
+                  onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
+                  required
+                >
+                  <option value="">Select</option>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.fullName} ({e.department})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Return by
+                <input
+                  type="date"
+                  value={form.returnBy}
+                  onChange={(e) => setForm({ ...form, returnBy: e.target.value })}
+                />
+              </label>
+              <label>
+                Notes
+                <textarea
+                  rows={2}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
+              </label>
+              <button className="btn btn-primary" type="submit">
+                Allocate
+              </button>
+            </form>
+          </article>
+        ) : null}
       </section>
     </div>
   );

@@ -1,11 +1,30 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { apiRequest } from './api';
 
 const AuthContext = createContext(null);
+const STORAGE_KEY = 'tracksphere_auth';
+
+function loadStored() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { token: null, user: null };
+  } catch {
+    return { token: null, user: null };
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
+  const initial = loadStored();
+  const [token, setToken] = useState(initial.token);
+  const [user, setUser] = useState(initial.user);
+
+  useEffect(() => {
+    if (token && user) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+    } else {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+  }, [token, user]);
 
   async function login(email, password) {
     const data = await apiRequest('/api/auth/login', {
@@ -20,6 +39,11 @@ export function AuthProvider({ children }) {
   function logout() {
     setToken(null);
     setUser(null);
+    sessionStorage.removeItem(STORAGE_KEY);
+  }
+
+  function hasRole(...roles) {
+    return Boolean(user && roles.includes(user.role));
   }
 
   const value = useMemo(
@@ -29,6 +53,10 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(token),
       login,
       logout,
+      hasRole,
+      isAdmin: user?.role === 'Admin',
+      isStaff: user?.role === 'Staff' || user?.role === 'Admin',
+      isApprover: user?.role === 'Approver' || user?.role === 'Admin',
     }),
     [token, user]
   );

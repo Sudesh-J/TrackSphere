@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-/** Simulated RFID scan — finds asset by tag ID, writes event, updates last_scanned_at */
+/** Legacy RFID simulation — prefer QR handover (/api/handover). Kept for compatibility. */
 router.post('/scan', async (req, res) => {
   try {
     const rfidTagId = String(req.body.rfidTagId || '').trim();

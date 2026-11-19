@@ -1,6 +1,7 @@
 const express = require('express');
 const { query } = require('../db/pool');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRoles } = require('../middleware/auth');
+const { logActivity } = require('../utils/activity');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -43,11 +44,7 @@ router.get('/', async (req, res) => {
       params.push(status);
       where = `WHERE r.status = $${params.length}`;
     }
-
-    const result = await query(
-      `${SELECT_JOIN} ${where} ORDER BY r.created_at DESC`,
-      params
-    );
+    const result = await query(`${SELECT_JOIN} ${where} ORDER BY r.created_at DESC`, params);
     return res.json({ retirements: result.rows.map(mapRetirement) });
   } catch (err) {
     console.error('List retirements error:', err.message);
@@ -55,12 +52,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireRoles('Admin', 'Staff'), async (req, res) => {
   try {
     const assetId = Number(req.body.assetId);
     const retirementType = String(req.body.retirementType || '').trim().toLowerCase();
     const reason = String(req.body.reason || '').trim();
-    const requestedBy = String(req.body.requestedBy || req.user?.name || '').trim();
     const notes = req.body.notes ? String(req.body.notes).trim() : null;
 
     if (!Number.isInteger(assetId) || assetId < 1) {
@@ -71,17 +67,10 @@ router.post('/', async (req, res) => {
         error: `retirementType must be one of: ${RETIREMENT_TYPES.join(', ')}`,
       });
     }
-    if (!reason) {
-      return res.status(400).json({ error: 'reason is required' });
-    }
-    if (!requestedBy) {
-      return res.status(400).json({ error: 'requestedBy is required' });
-    }
+    if (!reason) return res.status(400).json({ error: 'reason is required' });
 
     const asset = await query('SELECT * FROM assets WHERE id = $1', [assetId]);
-    if (asset.rows.length === 0) {
-      return res.status(404).json({ error: 'Asset not found' });
-    }
+    if (asset.rows.length === 0) return res.status(404).json({ error: 'Asset not found' });
     if (asset.rows[0].status === 'retired') {
       return res.status(400).json({ error: 'Asset is already retired' });
     }
@@ -95,11 +84,20 @@ router.post('/', async (req, res) => {
     }
 
     const inserted = await query(
-      `INSERT INTO retirements (asset_id, retirement_type, reason, requested_by, notes)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [assetId, retirementType, reason, requestedBy, notes]
+      `INSERT INTO retirements (asset_id, retirement_type, reason, requested_by, requested_by_user_id, notes)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [assetId, retirementType, reason, req.user.name, req.user.id, notes]
     );
+
+    await logActivity({
+      actorUserId: req.user.id,
+      actorName: req.user.name,
+      action: 'retirement.request',
+      entityType: 'retirement',
+      entityId: inserted.rows[0].id,
+      assetId,
+      summary: `Requested retirement (${retirementType}) for ${asset.rows[0].asset_code}`,
+    });
 
     const result = await query(`${SELECT_JOIN} WHERE r.id = $1`, [inserted.rows[0].id]);
     return res.status(201).json({ retirement: mapRetirement(result.rows[0]) });
@@ -109,89 +107,62 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/:id/approve', async (req, res) => {
+async function reviewRetirement(req, res, decision) {
   try {
     const id = Number(req.params.id);
-    const reviewedBy = String(req.body.reviewedBy || req.user?.name || '').trim();
     const reviewComment = req.body.comment ? String(req.body.comment).trim() : null;
-
     if (!Number.isInteger(id) || id < 1) {
       return res.status(400).json({ error: 'Invalid retirement id' });
     }
-    if (!reviewedBy) {
-      return res.status(400).json({ error: 'reviewedBy is required' });
-    }
 
     const existing = await query('SELECT * FROM retirements WHERE id = $1', [id]);
-    if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Retirement not found' });
-    }
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Retirement not found' });
     if (existing.rows[0].status !== 'pending') {
-      return res.status(400).json({ error: 'Only pending retirements can be approved' });
+      return res.status(400).json({ error: `Only pending retirements can be ${decision}` });
     }
 
+    const newStatus = decision === 'approve' ? 'retired' : 'rejected';
     await query(
       `UPDATE retirements
-       SET status = 'retired', reviewed_by = $1, review_comment = $2, reviewed_at = NOW()
-       WHERE id = $3`,
-      [reviewedBy, reviewComment, id]
+       SET status = $1, reviewed_by = $2, reviewed_by_user_id = $3, review_comment = $4, reviewed_at = NOW()
+       WHERE id = $5`,
+      [newStatus, req.user.name, req.user.id, reviewComment, id]
     );
 
-    await query(
-      `UPDATE assets SET status = 'retired', updated_at = NOW() WHERE id = $1`,
-      [existing.rows[0].asset_id]
-    );
+    if (decision === 'approve') {
+      await query(`UPDATE assets SET status = 'retired', updated_at = NOW() WHERE id = $1`, [
+        existing.rows[0].asset_id,
+      ]);
+      await query(
+        `UPDATE allocations SET status = 'returned', returned_at = NOW(), returned_by_user_id = $1
+         WHERE asset_id = $2 AND status = 'allocated'`,
+        [req.user.id, existing.rows[0].asset_id]
+      );
+    }
 
-    // Close any open allocation if the asset is retired
-    await query(
-      `UPDATE allocations
-       SET status = 'returned', returned_at = NOW()
-       WHERE asset_id = $1 AND status = 'allocated'`,
-      [existing.rows[0].asset_id]
-    );
+    await logActivity({
+      actorUserId: req.user.id,
+      actorName: req.user.name,
+      action: decision === 'approve' ? 'retirement.approve' : 'retirement.reject',
+      entityType: 'retirement',
+      entityId: id,
+      assetId: existing.rows[0].asset_id,
+      summary: `${decision === 'approve' ? 'Approved' : 'Rejected'} retirement #${id}`,
+    });
 
     const result = await query(`${SELECT_JOIN} WHERE r.id = $1`, [id]);
     return res.json({ retirement: mapRetirement(result.rows[0]) });
   } catch (err) {
-    console.error('Approve retirement error:', err.message);
-    return res.status(500).json({ error: 'Failed to approve retirement' });
+    console.error('Review retirement error:', err.message);
+    return res.status(500).json({ error: 'Failed to review retirement' });
   }
-});
+}
 
-router.post('/:id/reject', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const reviewedBy = String(req.body.reviewedBy || req.user?.name || '').trim();
-    const reviewComment = req.body.comment ? String(req.body.comment).trim() : null;
-
-    if (!Number.isInteger(id) || id < 1) {
-      return res.status(400).json({ error: 'Invalid retirement id' });
-    }
-    if (!reviewedBy) {
-      return res.status(400).json({ error: 'reviewedBy is required' });
-    }
-
-    const existing = await query('SELECT * FROM retirements WHERE id = $1', [id]);
-    if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Retirement not found' });
-    }
-    if (existing.rows[0].status !== 'pending') {
-      return res.status(400).json({ error: 'Only pending retirements can be rejected' });
-    }
-
-    await query(
-      `UPDATE retirements
-       SET status = 'rejected', reviewed_by = $1, review_comment = $2, reviewed_at = NOW()
-       WHERE id = $3`,
-      [reviewedBy, reviewComment, id]
-    );
-
-    const result = await query(`${SELECT_JOIN} WHERE r.id = $1`, [id]);
-    return res.json({ retirement: mapRetirement(result.rows[0]) });
-  } catch (err) {
-    console.error('Reject retirement error:', err.message);
-    return res.status(500).json({ error: 'Failed to reject retirement' });
-  }
-});
+router.post('/:id/approve', requireRoles('Admin', 'Approver'), (req, res) =>
+  reviewRetirement(req, res, 'approve')
+);
+router.post('/:id/reject', requireRoles('Admin', 'Approver'), (req, res) =>
+  reviewRetirement(req, res, 'reject')
+);
 
 module.exports = router;

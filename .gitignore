@@ -22,3 +22,7 @@ Thumbs.db
 
 # Docker
 postgres_data/
+
+# Uploads (served via API only; not committed)
+backend/uploads/
+agent/.env

@@ -46,8 +46,8 @@ export default function Dashboard() {
           <Link className="btn btn-secondary" to="/approvals">
             Pending approvals ({data.lifecycle.pendingApprovals})
           </Link>
-          <Link className="btn btn-primary" to="/rfid">
-            Simulate RFID scan
+          <Link className="btn btn-primary" to="/scan">
+            Scan / handover
           </Link>
         </div>
       </header>

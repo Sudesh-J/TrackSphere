@@ -1,0 +1,14 @@
+{
+  "name": "tracksphere-health-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Windows laptop health agent for TrackSphere",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "demo": "node index.js --demo"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

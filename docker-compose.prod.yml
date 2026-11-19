@@ -1,0 +1,58 @@
+# Production-oriented Compose for EC2 (used by scripts/remote-deploy.sh)
+# Postgres is bound to localhost only. Put real secrets in backend/.env and .env at repo root.
+
+services:
+  db:
+    image: postgres:16
+    container_name: tracksphere-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tracksphere}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracksphere_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-tracksphere}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - tracksphere_pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./database/migrate_3_5.sql:/docker-entrypoint-initdb.d/02_migrate_3_5.sql:ro
+      - ./database/migrate_4_0.sql:/docker-entrypoint-initdb.d/03_migrate_4_0.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tracksphere} -d ${POSTGRES_DB:-tracksphere}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: tracksphere-api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://tracksphere:tracksphere_dev@db:5432/tracksphere}
+    volumes:
+      - tracksphere_uploads:/app/uploads
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://127.0.0.1:4000}
+    container_name: tracksphere-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  tracksphere_pgdata:
+  tracksphere_uploads:
