@@ -11,7 +11,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracksphere_dev}
       POSTGRES_DB: ${POSTGRES_DB:-tracksphere}
     ports:
-      - "127.0.0.1:5432:5432"
+      # Keep DB private by default; override DB_BIND only if you know what you're doing
+      - "${DB_BIND:-127.0.0.1}:5432:5432"
     volumes:
       - tracksphere_pgdata:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
@@ -36,7 +37,8 @@ services:
     volumes:
       - tracksphere_uploads:/app/uploads
     ports:
-      - "127.0.0.1:4000:4000"
+      # For a quick EC2 IP demo set API_BIND=0.0.0.0 in .env; prefer Nginx later
+      - "${API_BIND:-127.0.0.1}:4000:4000"
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +51,7 @@ services:
     container_name: tracksphere-web
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5173:5173"
+      - "${WEB_BIND:-127.0.0.1}:5173:5173"
     depends_on:
       - backend
 
